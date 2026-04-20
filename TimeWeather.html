@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>IRL PRO HUD</title>
+<title>Overlay PRO</title>
 
 <style>
 body {
@@ -12,184 +12,145 @@ body {
   font-family: Arial, sans-serif;
 }
 
-/* ГЛАВНЫЙ БЛОК */
-#hud {
+/* ОСНОВНОЙ БЛОК */
+#box {
   position: absolute;
-  top: 30px;
-  left: 30px;
+  top: 20px;
+  left: 20px;
 
-  padding: 12px 18px;
-  border-radius: 18px;
+  background: rgba(0,0,0,0.78);
+  padding: 20px 25px;
+  border-radius: 20px;
 
-  background: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
 
-  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  color: white;
+  min-width: 260px;
 }
 
 /* ВЕРХ */
-.top {
+#top {
   display: flex;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .badge {
-  padding: 4px 10px;
+  background: rgba(255,255,255,0.1);
+  padding: 5px 12px;
   border-radius: 999px;
-  font-size: 16px;
-  font-weight: 800;
-  color: white;
-  background: rgba(255,255,255,0.08);
+  font-weight: bold;
 }
 
+/* ВРЕМЯ */
 #time {
   color: #00eaff;
 }
 
+/* ПОГОДА */
 #weather {
-  color: #00ff88;
+  color: #00ff9c;
 }
 
-/* СКОРОСТЬ — ГЛАВНОЕ */
+/* СКОРОСТЬ */
 #speedWrap {
   display: flex;
-  align-items: flex-end;
-  gap: 6px;
+  align-items: baseline;
 }
 
 #speed {
-  font-size: 78px;
+  font-size: 80px;
   font-weight: 900;
-  color: white;
   line-height: 1;
-
-  text-shadow:
-    0 2px 4px black,
-    0 0 10px rgba(255,255,255,0.15);
 }
 
 #unit {
   font-size: 22px;
-  font-weight: 800;
-  margin-bottom: 10px;
-}
-
-/* НИЗ */
-#bottom {
-  margin-top: 6px;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-#dir {
-  color: #ffd84d;
-}
-
-#status {
-  font-size: 13px;
+  margin-left: 6px;
   opacity: 0.8;
+  position: relative;
+  top: -10px;
 }
 
-/* ЦВЕТА СКОРОСТИ */
-.stop { color: white; }
-.walk { color: #00ff88; }
-.ride { color: #00eaff; }
-.fast { color: #ff9f1a; }
-.vfast { color: #ff3df5; }
-
+/* НАПРАВЛЕНИЕ */
+#dir {
+  margin-top: 10px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #ffd54f;
+}
 </style>
-</head>
 
+</head>
 <body>
 
-<div id="hud">
-  <div class="top">
+<div id="box">
+
+  <div id="top">
     <div id="time" class="badge">--:--</div>
     <div id="weather" class="badge">...</div>
   </div>
 
   <div id="speedWrap">
-    <div id="speed" class="stop">0.0</div>
-    <div id="unit" class="stop">km/h</div>
+    <div id="speed">0.0</div>
+    <div id="unit">km/h</div>
   </div>
 
-  <div id="bottom">
-    <div id="dir">Direction: --</div>
-    <div id="status">GPS: waiting</div>
-  </div>
+  <div id="dir">--</div>
+
 </div>
 
 <script>
 
-// ВРЕМЯ
+/* ВРЕМЯ */
 function updateTime() {
   const now = new Date();
-  let h = now.getHours().toString().padStart(2, '0');
-  let m = now.getMinutes().toString().padStart(2, '0');
-  document.getElementById("time").innerText = h + ":" + m;
+  const t = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  document.getElementById("time").innerText = t;
 }
 setInterval(updateTime, 1000);
 updateTime();
 
-// ПОГОДА
+/* ПОГОДА (Оттава) */
 async function getWeather() {
   try {
     const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=45.42&longitude=-75.69&current_weather=true");
     const data = await res.json();
     let temp = data.current_weather.temperature;
-    document.getElementById("weather").innerText = temp + "°C";
+    document.getElementById("weather").innerText = temp + "°C Ottawa";
   } catch {
-    document.getElementById("weather").innerText = "Err";
+    document.getElementById("weather").innerText = "--°C";
   }
 }
 getWeather();
 setInterval(getWeather, 600000);
 
-// НАПРАВЛЕНИЕ
+/* НАПРАВЛЕНИЕ */
 function getDir(deg) {
   if (deg == null) return "--";
   const dirs = ["N","NE","E","SE","S","SW","W","NW"];
   return dirs[Math.round(deg / 45) % 8];
 }
 
-// ЦВЕТ СКОРОСТИ
-function setSpeedColor(kmh) {
-  const s = document.getElementById("speed");
-  const u = document.getElementById("unit");
+/* GPS СКОРОСТЬ */
+navigator.geolocation.watchPosition(pos => {
 
-  s.className = "";
-  u.className = "";
+  let speed = pos.coords.speed;
 
-  let cls = "stop";
-  if (kmh >= 1 && kmh < 7) cls = "walk";
-  else if (kmh >= 7 && kmh < 18) cls = "ride";
-  else if (kmh >= 18 && kmh < 35) cls = "fast";
-  else if (kmh >= 35) cls = "vfast";
+  if (speed == null) speed = 0;
 
-  s.classList.add(cls);
-  u.classList.add(cls);
-}
+  let kmh = speed * 3.6;
 
-// GPS
-if (navigator.geolocation) {
-  navigator.geolocation.watchPosition(pos => {
+  document.getElementById("speed").innerText = kmh.toFixed(1);
 
-    let speed = pos.coords.speed;
-    let kmh = speed ? speed * 3.6 : 0;
+  document.getElementById("dir").innerText =
+    getDir(pos.coords.heading) + " ↑";
 
-    document.getElementById("speed").innerText = kmh.toFixed(1);
-    setSpeedColor(kmh);
-
-    document.getElementById("dir").innerText =
-      "Direction: " + getDir(pos.coords.heading);
-
-    document.getElementById("status").innerText = "GPS: ok";
-
-  }, () => {
-    document.getElementById("status").innerText = "GPS error";
-  });
-}
+},
+err => {
+  document.getElementById("speed").innerText = "0.0";
+});
 
 </script>
 
