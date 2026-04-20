@@ -17,49 +17,50 @@ body {
   top: 40px;
   left: 40px;
 
-  padding: 15px 20px;
-  border-radius: 15px;
+  padding: 12px 18px;
+  border-radius: 14px;
 
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.65);
+
+  border: 1px solid rgba(255,255,255,0.15);
 
   box-shadow:
-    0 0 10px rgba(0,0,0,0.5),
-    0 0 20px rgba(0,0,0,0.4);
+    0 4px 20px rgba(0,0,0,0.6);
 }
 
 /* ВРЕМЯ */
 #time {
-  font-size: 58px;
+  font-size: 54px;
   font-weight: 900;
   color: #00eaff;
 
   text-shadow:
-    0 0 6px #00eaff,
-    0 0 12px #00eaff,
-    0 0 25px #00eaff;
+    0 0 4px #00eaff,
+    0 0 8px #00eaff,
+    1px 1px 2px black;
 }
 
 /* ПОГОДА */
 #weather {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   color: #00ff88;
 
   text-shadow:
-    0 0 5px #00ff88,
-    0 0 10px #00ff88;
+    0 0 3px #00ff88,
+    1px 1px 2px black;
 }
 
 /* СКОРОСТЬ */
 #speed {
-  font-size: 28px;
+  margin-top: 4px;
+  font-size: 26px;
   font-weight: 900;
   color: #ff3df5;
 
   text-shadow:
-    0 0 6px #ff3df5,
-    0 0 12px #ff3df5;
+    0 0 4px #ff3df5,
+    1px 1px 2px black;
 }
 </style>
 </head>
@@ -83,7 +84,7 @@ function updateTime() {
 setInterval(updateTime, 1000);
 updateTime();
 
-// ПОГОДА (Оттава)
+// ПОГОДА
 async function getWeather() {
   try {
     const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=45.42&longitude=-75.69&current_weather=true");
