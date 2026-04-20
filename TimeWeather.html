@@ -1,1 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Overlay</title>
 
+<style>
+body {
+    margin: 0;
+    background: transparent;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+}
+
+#box {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    text-shadow: 0 0 10px black;
+}
+
+.small {
+    font-size: 18px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="box">
+    <div id="time">--:--</div>
+    <div id="weather" class="small">Loading...</div>
+</div>
+
+<script>
+function updateTime() {
+    const now = new Date();
+    let h = now.getHours().toString().padStart(2, '0');
+    let m = now.getMinutes().toString().padStart(2, '0');
+    document.getElementById("time").innerText = h + ":" + m;
+}
+setInterval(updateTime, 1000);
+updateTime();
+
+async function getWeather() {
+    try {
+        const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=45.42&longitude=-75.69&current_weather=true");
+        const data = await res.json();
+        let temp = data.current_weather.temperature;
+        document.getElementById("weather").innerText = temp + "°C Ottawa";
+    } catch {
+        document.getElementById("weather").innerText = "No weather";
+    }
+}
+
+getWeather();
+setInterval(getWeather, 600000);
+</script>
+
+</body>
+</html>
