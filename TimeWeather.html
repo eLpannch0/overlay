@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Overlay PRO</title>
+<title>IRL ULTRA PRO HUD</title>
 
 <style>
 body {
@@ -12,113 +12,187 @@ body {
   font-family: Arial, sans-serif;
 }
 
-/* ОСНОВНОЙ БЛОК */
-#box {
+#hud {
   position: absolute;
   top: 20px;
   left: 20px;
 
-  background: rgba(0,0,0,0.78);
-  padding: 20px 25px;
-  border-radius: 20px;
+  min-width: 300px;
+  padding: 16px 20px 14px 20px;
+  border-radius: 22px;
 
-  backdrop-filter: blur(10px);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-
-  color: white;
-  min-width: 260px;
+  background: rgba(0, 0, 0, 0.82);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow:
+    0 10px 30px rgba(0,0,0,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
-/* ВЕРХ */
+/* верхняя строка */
 #top {
   display: flex;
   gap: 10px;
-  margin-bottom: 10px;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
 .badge {
-  background: rgba(255,255,255,0.1);
   padding: 5px 12px;
   border-radius: 999px;
-  font-weight: bold;
-}
-
-/* ВРЕМЯ */
-#time {
-  color: #00eaff;
-}
-
-/* ПОГОДА */
-#weather {
-  color: #00ff9c;
-}
-
-/* СКОРОСТЬ */
-#speedWrap {
-  display: flex;
-  align-items: baseline;
-}
-
-#speed {
-  font-size: 80px;
-  font-weight: 900;
+  background: rgba(255,255,255,0.08);
+  font-size: 17px;
+  font-weight: 800;
   line-height: 1;
 }
 
-#unit {
-  font-size: 22px;
-  margin-left: 6px;
-  opacity: 0.8;
-  position: relative;
-  top: -10px;
+#time {
+  color: #00d9ff;
+  text-shadow: 0 0 8px rgba(0,217,255,0.45);
 }
 
-/* НАПРАВЛЕНИЕ */
+#weather {
+  color: #41ff8f;
+  text-shadow: 0 0 8px rgba(65,255,143,0.35);
+}
+
+/* скорость */
+#speedWrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  line-height: 1;
+}
+
+#speed {
+  font-size: 92px;
+  font-weight: 900;
+  letter-spacing: -2px;
+
+  background: linear-gradient(180deg, #ffffff 0%, #d8d8d8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+
+  text-shadow:
+    0 2px 4px rgba(0,0,0,0.95),
+    0 0 18px rgba(255,255,255,0.12);
+
+  animation: pulse 2s infinite ease-in-out;
+  transform-origin: left center;
+}
+
+#unit {
+  font-size: 20px;
+  font-weight: 800;
+  opacity: 0.92;
+  margin-bottom: 14px;
+  color: rgba(255,255,255,0.92);
+}
+
+/* нижняя строка */
+#bottom {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 #dir {
-  margin-top: 10px;
-  font-size: 22px;
-  font-weight: bold;
-  color: #ffd54f;
+  font-size: 24px;
+  font-weight: 900;
+  color: #ffd84d;
+  text-shadow:
+    0 0 8px rgba(255,216,77,0.35),
+    0 1px 2px rgba(0,0,0,0.9);
+}
+
+#label {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* цвет скорости */
+.speed-stop {
+  text-shadow:
+    0 2px 4px rgba(0,0,0,0.95),
+    0 0 10px rgba(255,255,255,0.12);
+}
+
+.speed-walk {
+  text-shadow:
+    0 2px 4px rgba(0,0,0,0.95),
+    0 0 14px rgba(65,255,143,0.35);
+  filter: drop-shadow(0 0 6px rgba(65,255,143,0.25));
+}
+
+.speed-ride {
+  text-shadow:
+    0 2px 4px rgba(0,0,0,0.95),
+    0 0 14px rgba(0,217,255,0.35);
+  filter: drop-shadow(0 0 6px rgba(0,217,255,0.25));
+}
+
+.speed-fast {
+  text-shadow:
+    0 2px 4px rgba(0,0,0,0.95),
+    0 0 14px rgba(255,176,32,0.35);
+  filter: drop-shadow(0 0 6px rgba(255,176,32,0.25));
+}
+
+.speed-vfast {
+  text-shadow:
+    0 2px 4px rgba(0,0,0,0.95),
+    0 0 14px rgba(255,77,240,0.35);
+  filter: drop-shadow(0 0 6px rgba(255,77,240,0.25));
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.025); }
+  100% { transform: scale(1); }
 }
 </style>
-
 </head>
+
 <body>
 
-<div id="box">
-
+<div id="hud">
   <div id="top">
     <div id="time" class="badge">--:--</div>
     <div id="weather" class="badge">...</div>
   </div>
 
   <div id="speedWrap">
-    <div id="speed">0.0</div>
+    <div id="speed" class="speed-stop">0.0</div>
     <div id="unit">km/h</div>
   </div>
 
-  <div id="dir">--</div>
-
+  <div id="bottom">
+    <div id="dir">--</div>
+    <div id="label">direction</div>
+  </div>
 </div>
 
 <script>
-
-/* ВРЕМЯ */
 function updateTime() {
   const now = new Date();
-  const t = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-  document.getElementById("time").innerText = t;
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  document.getElementById("time").innerText = h + ":" + m;
 }
 setInterval(updateTime, 1000);
 updateTime();
 
-/* ПОГОДА (Оттава) */
 async function getWeather() {
   try {
     const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=45.42&longitude=-75.69&current_weather=true");
     const data = await res.json();
-    let temp = data.current_weather.temperature;
-    document.getElementById("weather").innerText = temp + "°C Ottawa";
+    const temp = data.current_weather.temperature;
+    document.getElementById("weather").innerText = temp + "°C";
   } catch {
     document.getElementById("weather").innerText = "--°C";
   }
@@ -126,32 +200,50 @@ async function getWeather() {
 getWeather();
 setInterval(getWeather, 600000);
 
-/* НАПРАВЛЕНИЕ */
 function getDir(deg) {
-  if (deg == null) return "--";
+  if (deg == null || isNaN(deg)) return "--";
   const dirs = ["N","NE","E","SE","S","SW","W","NW"];
-  return dirs[Math.round(deg / 45) % 8];
+  return dirs[Math.round(deg / 45) % 8] + " ↑";
 }
 
-/* GPS СКОРОСТЬ */
-navigator.geolocation.watchPosition(pos => {
+function setSpeedClass(kmh) {
+  const el = document.getElementById("speed");
+  el.classList.remove("speed-stop", "speed-walk", "speed-ride", "speed-fast", "speed-vfast");
 
-  let speed = pos.coords.speed;
+  let cls = "speed-stop";
+  if (kmh >= 1 && kmh < 7) cls = "speed-walk";
+  else if (kmh >= 7 && kmh < 18) cls = "speed-ride";
+  else if (kmh >= 18 && kmh < 35) cls = "speed-fast";
+  else if (kmh >= 35) cls = "speed-vfast";
 
-  if (speed == null) speed = 0;
+  el.classList.add(cls);
+}
 
-  let kmh = speed * 3.6;
+if (navigator.geolocation) {
+  navigator.geolocation.watchPosition(
+    pos => {
+      let speed = pos.coords.speed;
+      if (speed == null) speed = 0;
 
-  document.getElementById("speed").innerText = kmh.toFixed(1);
+      const kmh = speed * 3.6;
+      const displaySpeed = kmh < 0.5 ? (Math.random() * 0.2).toFixed(1) : kmh.toFixed(1);
 
-  document.getElementById("dir").innerText =
-    getDir(pos.coords.heading) + " ↑";
-
-},
-err => {
-  document.getElementById("speed").innerText = "0.0";
-});
-
+      document.getElementById("speed").innerText = displaySpeed;
+      document.getElementById("dir").innerText = getDir(pos.coords.heading);
+      setSpeedClass(kmh);
+    },
+    () => {
+      document.getElementById("speed").innerText = "0.0";
+      document.getElementById("dir").innerText = "--";
+      setSpeedClass(0);
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 1000,
+      timeout: 10000
+    }
+  );
+}
 </script>
 
 </body>
