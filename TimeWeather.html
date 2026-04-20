@@ -14,23 +14,46 @@ body {
 
 #box {
   position: absolute;
-  top: 30px;
-  left: 30px;
-
-  color: white;
-  font-size: 42px;
-  font-weight: 900;
-
-  text-shadow:
-    0 0 5px black,
-    0 0 10px black,
-    0 0 20px black;
+  top: 40px;
+  left: 40px;
 }
 
-.small {
-  font-size: 22px;
-  font-weight: 600;
-  opacity: 0.9;
+/* ВРЕМЯ */
+#time {
+  font-size: 56px;
+  font-weight: 900;
+  color: #00eaff;
+
+  text-shadow:
+    0 0 5px #00eaff,
+    0 0 10px #00eaff,
+    0 0 20px #00eaff,
+    0 0 40px #00eaff;
+}
+
+/* ПОГОДА */
+#weather {
+  font-size: 24px;
+  font-weight: 700;
+  color: #00ff88;
+
+  text-shadow:
+    0 0 5px #00ff88,
+    0 0 10px #00ff88,
+    0 0 20px #00ff88;
+}
+
+/* СКОРОСТЬ */
+#speed {
+  font-size: 28px;
+  font-weight: 900;
+  color: #ff3df5;
+
+  text-shadow:
+    0 0 5px #ff3df5,
+    0 0 10px #ff3df5,
+    0 0 20px #ff3df5,
+    0 0 40px #ff3df5;
 }
 </style>
 </head>
@@ -39,7 +62,8 @@ body {
 
 <div id="box">
   <div id="time">--:--</div>
-  <div id="weather" class="small">Loading...</div>
+  <div id="weather">Loading...</div>
+  <div id="speed">0 km/h</div>
 </div>
 
 <script>
@@ -53,7 +77,7 @@ function updateTime() {
 setInterval(updateTime, 1000);
 updateTime();
 
-// ПОГОДА (Оттава)
+// ПОГОДА
 async function getWeather() {
   try {
     const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=45.42&longitude=-75.69&current_weather=true");
@@ -66,6 +90,19 @@ async function getWeather() {
 }
 getWeather();
 setInterval(getWeather, 600000);
+
+// GPS СКОРОСТЬ
+if (navigator.geolocation) {
+  navigator.geolocation.watchPosition(pos => {
+    let speed = pos.coords.speed;
+    if (speed === null) {
+      document.getElementById("speed").innerText = "0 km/h";
+    } else {
+      let kmh = (speed * 3.6).toFixed(1);
+      document.getElementById("speed").innerText = kmh + " km/h";
+    }
+  });
+}
 </script>
 
 </body>
