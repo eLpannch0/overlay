@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IRL HUD FINAL</title>
+
   <style>
     body {
       margin: 0;
@@ -73,12 +74,13 @@
     }
   </style>
 </head>
+
 <body>
   <div class="hud">
     <div class="card topbar">
       <div class="live-dot"></div>
       <div class="top-item">LIVE</div>
-      <div id="city" class="top-item">Ottawa</div>
+      <div id="city" class="top-item">Loading...</div>
       <div id="temp" class="top-item">--°C</div>
     </div>
 
@@ -89,62 +91,98 @@
   </div>
 
   <script>
-    (function () {
-      const timeEl = document.getElementById("time");
-      const cityEl = document.getElementById("city");
-      const tempEl = document.getElementById("temp");
+    const cityEl = document.getElementById("city");
+    const tempEl = document.getElementById("temp");
 
-      function updateTime() {
-        const now = new Date();
-        const h = String(now.getHours()).padStart(2, "0");
-        const m = String(now.getMinutes()).padStart(2, "0");
-        timeEl.textContent = h + ":" + m;
+    function updateTime() {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, "0");
+      const m = String(now.getMinutes()).padStart(2, "0");
+      document.getElementById("time").innerText = `${h}:${m}`;
+    }
+
+    async function fetchJson(url) {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    }
+
+    async function getLocationData() {
+      const providers = [
+        async () => {
+          const d = await fetchJson("https://ipwho.is/");
+          if (!d.success) throw new Error("ipwho.is failed");
+          return {
+            city: d.city,
+            latitude: d.latitude,
+            longitude: d.longitude
+          };
+        },
+        async () => {
+          const d = await fetchJson("https://ipapi.co/json/");
+          return {
+            city: d.city,
+            latitude: d.latitude,
+            longitude: d.longitude
+          };
+        },
+        async () => {
+          const d = await fetchJson("https://ipinfo.io/json");
+          const [lat, lon] = (d.loc || "").split(",");
+          return {
+            city: d.city,
+            latitude: lat ? Number(lat) : null,
+            longitude: lon ? Number(lon) : null
+          };
+        }
+      ];
+
+      for (const provider of providers) {
+        try {
+          const data = await provider();
+          if (data && data.city) return data;
+        } catch (e) {}
       }
 
-      async function fetchJson(url) {
-        const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) throw new Error("Request failed");
-        return res.json();
+      throw new Error("All location providers failed");
+    }
+
+    async function getTemperature(lat, lon) {
+      if (typeof lat !== "number" || typeof lon !== "number") {
+        throw new Error("Invalid coordinates");
       }
 
-      async function loadLocationAndWeather() {
-        let lat = null;
-        let lon = null;
+      const d = await fetchJson(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m`
+      );
+
+      const temp = d?.current?.temperature_2m;
+      if (typeof temp !== "number") throw new Error("Weather unavailable");
+      return Math.round(temp);
+    }
+
+    async function loadLocationAndWeather() {
+      try {
+        const loc = await getLocationData();
+        cityEl.innerText = loc.city || "Unknown";
 
         try {
-          const loc = await fetchJson("https://ipwho.is/");
-          cityEl.textContent = loc.city || "Ottawa";
-          lat = Number(loc.latitude);
-          lon = Number(loc.longitude);
-        } catch (e) {
-          cityEl.textContent = "Ottawa";
+          const t = await getTemperature(loc.latitude, loc.longitude);
+          tempEl.innerText = `${t > 0 ? "+" : ""}${t}°C`;
+        } catch {
+          tempEl.innerText = "--°C";
         }
-
-        try {
-          if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-            throw new Error("No coordinates");
-          }
-
-          const weather = await fetchJson(
-            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m`
-          );
-
-          const t = weather?.current?.temperature_2m;
-          if (typeof t !== "number") throw new Error("No temperature");
-
-          const rounded = Math.round(t);
-          tempEl.textContent = (rounded > 0 ? "+" : "") + rounded + "°C";
-        } catch (e) {
-          tempEl.textContent = "--°C";
-        }
+      } catch {
+        cityEl.innerText = "Ottawa";
+        tempEl.innerText = "--°C";
       }
+    }
 
-      updateTime();
-      setInterval(updateTime, 1000);
+    updateTime();
+    setInterval(updateTime, 1000);
 
-      loadLocationAndWeather();
-      setInterval(loadLocationAndWeather, 300000);
-    })();
+    loadLocationAndWeather();
+    setInterval(loadLocationAndWeather, 300000);
   </script>
 </body>
 </html>
