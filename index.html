@@ -107,28 +107,43 @@
         return res.json();
       }
 
-      async function loadWeather() {
+      async function loadLocationAndWeather() {
+        let lat = null;
+        let lon = null;
+
         try {
           const loc = await fetchJson("https://ipwho.is/");
           cityEl.textContent = loc.city || "Ottawa";
-
-          const weather = await fetchJson(
-            `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m`
-          );
-
-          const t = Math.round(weather.current.temperature_2m);
-          tempEl.textContent = (t > 0 ? "+" : "") + t + "°C";
+          lat = Number(loc.latitude);
+          lon = Number(loc.longitude);
         } catch (e) {
           cityEl.textContent = "Ottawa";
+        }
+
+        try {
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+            throw new Error("No coordinates");
+          }
+
+          const weather = await fetchJson(
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m`
+          );
+
+          const t = weather?.current?.temperature_2m;
+          if (typeof t !== "number") throw new Error("No temperature");
+
+          const rounded = Math.round(t);
+          tempEl.textContent = (rounded > 0 ? "+" : "") + rounded + "°C";
+        } catch (e) {
           tempEl.textContent = "--°C";
-          console.error(e);
         }
       }
 
       updateTime();
       setInterval(updateTime, 1000);
-      loadWeather();
-      setInterval(loadWeather, 300000);
+
+      loadLocationAndWeather();
+      setInterval(loadLocationAndWeather, 300000);
     })();
   </script>
 </body>
