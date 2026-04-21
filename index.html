@@ -1,49 +1,135 @@
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-
-  const timeEl = document.getElementById("time");
-  const cityEl = document.getElementById("city");
-  const tempEl = document.getElementById("temp");
-
-  function updateTime() {
-    const now = new Date();
-    const h = String(now.getHours()).padStart(2, "0");
-    const m = String(now.getMinutes()).padStart(2, "0");
-    timeEl.textContent = h + ":" + m;
-  }
-
-  function loop() {
-    updateTime();
-    requestAnimationFrame(loop);
-  }
-
-  // старт
-  loop();
-
-  async function fetchJson(url) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error();
-    return await res.json();
-  }
-
-  async function loadData() {
-    try {
-      const loc = await fetchJson("https://ipwho.is/");
-      cityEl.textContent = loc.city || "Ottawa";
-
-      const weather = await fetchJson(
-        `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current_weather=true`
-      );
-
-      let t = Math.round(weather.current_weather.temperature);
-      tempEl.textContent = (t > 0 ? "+" : "") + t + "°C";
-
-    } catch {
-      cityEl.textContent = "Ottawa";
-      tempEl.textContent = "--°C";
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IRL HUD FINAL</title>
+  <style>
+    body {
+      margin: 0;
+      background: transparent;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
     }
-  }
 
-  loadData();
-});
-</script>
+    .hud {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      color: white;
+    }
+
+    .card {
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 18px;
+      padding: 12px 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .live-dot {
+      width: 10px;
+      height: 10px;
+      background: red;
+      border-radius: 50%;
+      animation: blink 1s infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
+
+    .top-item {
+      white-space: nowrap;
+    }
+
+    .time {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .small {
+      opacity: 0.75;
+      font-size: 14px;
+      margin-bottom: 4px;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <div class="card topbar">
+      <div class="live-dot"></div>
+      <div class="top-item">LIVE</div>
+      <div id="city" class="top-item">Ottawa</div>
+      <div id="temp" class="top-item">--°C</div>
+    </div>
+
+    <div class="card">
+      <div class="small">TIME</div>
+      <div id="time" class="time">00:00</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const timeEl = document.getElementById("time");
+      const cityEl = document.getElementById("city");
+      const tempEl = document.getElementById("temp");
+
+      function updateTime() {
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2, "0");
+        const m = String(now.getMinutes()).padStart(2, "0");
+        timeEl.textContent = h + ":" + m;
+      }
+
+      async function fetchJson(url) {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("Request failed");
+        return res.json();
+      }
+
+      async function loadWeather() {
+        try {
+          const loc = await fetchJson("https://ipwho.is/");
+          cityEl.textContent = loc.city || "Ottawa";
+
+          const weather = await fetchJson(
+            `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m`
+          );
+
+          const t = Math.round(weather.current.temperature_2m);
+          tempEl.textContent = (t > 0 ? "+" : "") + t + "°C";
+        } catch (e) {
+          cityEl.textContent = "Ottawa";
+          tempEl.textContent = "--°C";
+          console.error(e);
+        }
+      }
+
+      updateTime();
+      setInterval(updateTime, 1000);
+      loadWeather();
+      setInterval(loadWeather, 300000);
+    })();
+  </script>
+</body>
+</html>
