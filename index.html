@@ -1,188 +1,49 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IRL HUD FINAL</title>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
 
-  <style>
-    body {
-      margin: 0;
-      background: transparent;
-      font-family: Arial, sans-serif;
-      overflow: hidden;
-    }
+  const timeEl = document.getElementById("time");
+  const cityEl = document.getElementById("city");
+  const tempEl = document.getElementById("temp");
 
-    .hud {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      color: white;
-    }
+  function updateTime() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, "0");
+    const m = String(now.getMinutes()).padStart(2, "0");
+    timeEl.textContent = h + ":" + m;
+  }
 
-    .card {
-      background: rgba(0, 0, 0, 0.55);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-radius: 18px;
-      padding: 12px 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    }
+  function loop() {
+    updateTime();
+    requestAnimationFrame(loop);
+  }
 
-    .topbar {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: bold;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
-    }
+  // старт
+  loop();
 
-    .live-dot {
-      width: 10px;
-      height: 10px;
-      background: red;
-      border-radius: 50%;
-      animation: blink 1s infinite;
-      flex-shrink: 0;
-    }
+  async function fetchJson(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error();
+    return await res.json();
+  }
 
-    @keyframes blink {
-      0% { opacity: 1; }
-      50% { opacity: 0.3; }
-      100% { opacity: 1; }
-    }
+  async function loadData() {
+    try {
+      const loc = await fetchJson("https://ipwho.is/");
+      cityEl.textContent = loc.city || "Ottawa";
 
-    .top-item {
-      white-space: nowrap;
-    }
-
-    .time {
-      font-size: 32px;
-      font-weight: 700;
-      line-height: 1;
-    }
-
-    .small {
-      opacity: 0.75;
-      font-size: 14px;
-      margin-bottom: 4px;
-      letter-spacing: 0.5px;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="hud">
-    <div class="card topbar">
-      <div class="live-dot"></div>
-      <div class="top-item">LIVE</div>
-      <div id="city" class="top-item">Loading...</div>
-      <div id="temp" class="top-item">--°C</div>
-    </div>
-
-    <div class="card">
-      <div class="small">TIME</div>
-      <div id="time" class="time">00:00</div>
-    </div>
-  </div>
-
-  <script>
-    const cityEl = document.getElementById("city");
-    const tempEl = document.getElementById("temp");
-
-    function updateTime() {
-      const now = new Date();
-      const h = String(now.getHours()).padStart(2, "0");
-      const m = String(now.getMinutes()).padStart(2, "0");
-      document.getElementById("time").innerText = `${h}:${m}`;
-    }
-
-    async function fetchJson(url) {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    }
-
-    async function getLocationData() {
-      const providers = [
-        async () => {
-          const d = await fetchJson("https://ipwho.is/");
-          if (!d.success) throw new Error("ipwho.is failed");
-          return {
-            city: d.city,
-            latitude: d.latitude,
-            longitude: d.longitude
-          };
-        },
-        async () => {
-          const d = await fetchJson("https://ipapi.co/json/");
-          return {
-            city: d.city,
-            latitude: d.latitude,
-            longitude: d.longitude
-          };
-        },
-        async () => {
-          const d = await fetchJson("https://ipinfo.io/json");
-          const [lat, lon] = (d.loc || "").split(",");
-          return {
-            city: d.city,
-            latitude: lat ? Number(lat) : null,
-            longitude: lon ? Number(lon) : null
-          };
-        }
-      ];
-
-      for (const provider of providers) {
-        try {
-          const data = await provider();
-          if (data && data.city) return data;
-        } catch (e) {}
-      }
-
-      throw new Error("All location providers failed");
-    }
-
-    async function getTemperature(lat, lon) {
-      if (typeof lat !== "number" || typeof lon !== "number") {
-        throw new Error("Invalid coordinates");
-      }
-
-      const d = await fetchJson(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m`
+      const weather = await fetchJson(
+        `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current_weather=true`
       );
 
-      const temp = d?.current?.temperature_2m;
-      if (typeof temp !== "number") throw new Error("Weather unavailable");
-      return Math.round(temp);
+      let t = Math.round(weather.current_weather.temperature);
+      tempEl.textContent = (t > 0 ? "+" : "") + t + "°C";
+
+    } catch {
+      cityEl.textContent = "Ottawa";
+      tempEl.textContent = "--°C";
     }
+  }
 
-    async function loadLocationAndWeather() {
-      try {
-        const loc = await getLocationData();
-        cityEl.innerText = loc.city || "Unknown";
-
-        try {
-          const t = await getTemperature(loc.latitude, loc.longitude);
-          tempEl.innerText = `${t > 0 ? "+" : ""}${t}°C`;
-        } catch {
-          tempEl.innerText = "--°C";
-        }
-      } catch {
-        cityEl.innerText = "Ottawa";
-        tempEl.innerText = "--°C";
-      }
-    }
-
-    updateTime();
-    setInterval(updateTime, 1000);
-
-    loadLocationAndWeather();
-    setInterval(loadLocationAndWeather, 300000);
-  </script>
-</body>
-</html>
+  loadData();
+});
+</script>
