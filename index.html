@@ -38,6 +38,7 @@
       gap: 12px;
       font-weight: bold;
       letter-spacing: 0.5px;
+      white-space: nowrap;
     }
 
     .live-dot {
@@ -90,30 +91,90 @@
   </div>
 
   <script>
+    const cityEl = document.getElementById("city");
+    const tempEl = document.getElementById("temp");
+
     function updateTime() {
       const now = new Date();
-      const h = now.getHours().toString().padStart(2, '0');
-      const m = now.getMinutes().toString().padStart(2, '0');
-      document.getElementById('time').innerText = h + ':' + m;
+      const h = String(now.getHours()).padStart(2, "0");
+      const m = String(now.getMinutes()).padStart(2, "0");
+      document.getElementById("time").innerText = `${h}:${m}`;
+    }
+
+    async function fetchJson(url) {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    }
+
+    async function getLocationData() {
+      const providers = [
+        async () => {
+          const d = await fetchJson("https://ipwho.is/");
+          if (!d.success) throw new Error("ipwho.is failed");
+          return {
+            city: d.city,
+            latitude: d.latitude,
+            longitude: d.longitude
+          };
+        },
+        async () => {
+          const d = await fetchJson("https://ipapi.co/json/");
+          return {
+            city: d.city,
+            latitude: d.latitude,
+            longitude: d.longitude
+          };
+        },
+        async () => {
+          const d = await fetchJson("https://ipinfo.io/json");
+          const [lat, lon] = (d.loc || "").split(",");
+          return {
+            city: d.city,
+            latitude: lat ? Number(lat) : null,
+            longitude: lon ? Number(lon) : null
+          };
+        }
+      ];
+
+      for (const provider of providers) {
+        try {
+          const data = await provider();
+          if (data && data.city) return data;
+        } catch (e) {}
+      }
+
+      throw new Error("All location providers failed");
+    }
+
+    async function getTemperature(lat, lon) {
+      if (typeof lat !== "number" || typeof lon !== "number") {
+        throw new Error("Invalid coordinates");
+      }
+
+      const d = await fetchJson(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m`
+      );
+
+      const temp = d?.current?.temperature_2m;
+      if (typeof temp !== "number") throw new Error("Weather unavailable");
+      return Math.round(temp);
     }
 
     async function loadLocationAndWeather() {
       try {
-        const locRes = await fetch('https://ipapi.co/json/');
-        const loc = await locRes.json();
+        const loc = await getLocationData();
+        cityEl.innerText = loc.city || "Unknown";
 
-        document.getElementById('city').innerText = loc.city || 'Unknown';
-
-        const weatherRes = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current_weather=true`
-        );
-        const weather = await weatherRes.json();
-
-        const t = Math.round(weather.current_weather.temperature);
-        document.getElementById('temp').innerText = (t > 0 ? '+' : '') + t + '°C';
-      } catch (e) {
-        document.getElementById('city').innerText = 'Location error';
-        document.getElementById('temp').innerText = '--°C';
+        try {
+          const t = await getTemperature(loc.latitude, loc.longitude);
+          tempEl.innerText = `${t > 0 ? "+" : ""}${t}°C`;
+        } catch {
+          tempEl.innerText = "--°C";
+        }
+      } catch {
+        cityEl.innerText = "Ottawa";
+        tempEl.innerText = "--°C";
       }
     }
 
