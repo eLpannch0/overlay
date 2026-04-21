@@ -1,188 +1,83 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IRL HUD FINAL</title>
+<meta charset="UTF-8">
+<style>
+body { margin:0; background:transparent; overflow:hidden; font-family:Arial; }
 
-  <style>
-    body {
-      margin: 0;
-      background: transparent;
-      font-family: Arial, sans-serif;
-      overflow: hidden;
-    }
+/* TOP BAR */
+#top {
+  position:absolute;
+  top:20px;
+  left:20px;
+  padding:12px 20px;
+  border-radius:20px;
+  background:rgba(80,80,80,0.85);
+  color:#fff;
+  font-size:22px;
+  display:flex;
+  gap:12px;
+  align-items:center;
+  box-shadow:0 8px 20px rgba(0,0,0,0.3);
+}
 
-    .hud {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      color: white;
-    }
+/* RED DOT */
+.dot {
+  width:10px;
+  height:10px;
+  background:#ff3b3b;
+  border-radius:50%;
+}
 
-    .card {
-      background: rgba(0, 0, 0, 0.55);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-radius: 18px;
-      padding: 12px 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    }
+/* TIME BLOCK */
+#timeBox {
+  position:absolute;
+  top:90px;
+  left:20px;
+  padding:18px 26px;
+  border-radius:20px;
+  background:rgba(80,80,80,0.85);
+  color:#fff;
+  box-shadow:0 8px 20px rgba(0,0,0,0.3);
+}
 
-    .topbar {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: bold;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
-    }
+#timeLabel {
+  font-size:16px;
+  opacity:0.7;
+}
 
-    .live-dot {
-      width: 10px;
-      height: 10px;
-      background: red;
-      border-radius: 50%;
-      animation: blink 1s infinite;
-      flex-shrink: 0;
-    }
-
-    @keyframes blink {
-      0% { opacity: 1; }
-      50% { opacity: 0.3; }
-      100% { opacity: 1; }
-    }
-
-    .top-item {
-      white-space: nowrap;
-    }
-
-    .time {
-      font-size: 32px;
-      font-weight: 700;
-      line-height: 1;
-    }
-
-    .small {
-      opacity: 0.75;
-      font-size: 14px;
-      margin-bottom: 4px;
-      letter-spacing: 0.5px;
-    }
-  </style>
+#time {
+  font-size:42px;
+  font-weight:bold;
+}
+</style>
 </head>
 
 <body>
-  <div class="hud">
-    <div class="card topbar">
-      <div class="live-dot"></div>
-      <div class="top-item">LIVE</div>
-      <div id="city" class="top-item">Loading...</div>
-      <div id="temp" class="top-item">--°C</div>
-    </div>
 
-    <div class="card">
-      <div class="small">TIME</div>
-      <div id="time" class="time">00:00</div>
-    </div>
-  </div>
+<div id="top">
+  <div class="dot"></div>
+  <div id="city">Ottawa</div>
+  <div id="temp">-1°C</div>
+</div>
 
-  <script>
-    const cityEl = document.getElementById("city");
-    const tempEl = document.getElementById("temp");
+<div id="timeBox">
+  <div id="timeLabel">TIME</div>
+  <div id="time">00:00</div>
+</div>
 
-    function updateTime() {
-      const now = new Date();
-      const h = String(now.getHours()).padStart(2, "0");
-      const m = String(now.getMinutes()).padStart(2, "0");
-      document.getElementById("time").innerText = `${h}:${m}`;
-    }
+<script>
+// TIME UPDATE
+function updateTime() {
+  const now = new Date();
+  let h = now.getHours().toString().padStart(2, '0');
+  let m = now.getMinutes().toString().padStart(2, '0');
+  document.getElementById("time").innerText = `${h}:${m}`;
+}
 
-    async function fetchJson(url) {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    }
+setInterval(updateTime, 1000);
+updateTime();
+</script>
 
-    async function getLocationData() {
-      const providers = [
-        async () => {
-          const d = await fetchJson("https://ipwho.is/");
-          if (!d.success) throw new Error("ipwho.is failed");
-          return {
-            city: d.city,
-            latitude: d.latitude,
-            longitude: d.longitude
-          };
-        },
-        async () => {
-          const d = await fetchJson("https://ipapi.co/json/");
-          return {
-            city: d.city,
-            latitude: d.latitude,
-            longitude: d.longitude
-          };
-        },
-        async () => {
-          const d = await fetchJson("https://ipinfo.io/json");
-          const [lat, lon] = (d.loc || "").split(",");
-          return {
-            city: d.city,
-            latitude: lat ? Number(lat) : null,
-            longitude: lon ? Number(lon) : null
-          };
-        }
-      ];
-
-      for (const provider of providers) {
-        try {
-          const data = await provider();
-          if (data && data.city) return data;
-        } catch (e) {}
-      }
-
-      throw new Error("All location providers failed");
-    }
-
-    async function getTemperature(lat, lon) {
-      if (typeof lat !== "number" || typeof lon !== "number") {
-        throw new Error("Invalid coordinates");
-      }
-
-      const d = await fetchJson(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m`
-      );
-
-      const temp = d?.current?.temperature_2m;
-      if (typeof temp !== "number") throw new Error("Weather unavailable");
-      return Math.round(temp);
-    }
-
-    async function loadLocationAndWeather() {
-      try {
-        const loc = await getLocationData();
-        cityEl.innerText = loc.city || "Unknown";
-
-        try {
-          const t = await getTemperature(loc.latitude, loc.longitude);
-          tempEl.innerText = `${t > 0 ? "+" : ""}${t}°C`;
-        } catch {
-          tempEl.innerText = "--°C";
-        }
-      } catch {
-        cityEl.innerText = "Ottawa";
-        tempEl.innerText = "--°C";
-      }
-    }
-
-    updateTime();
-    setInterval(updateTime, 1000);
-
-    loadLocationAndWeather();
-    setInterval(loadLocationAndWeather, 300000);
-  </script>
 </body>
 </html>
